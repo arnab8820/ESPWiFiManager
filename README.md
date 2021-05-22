@@ -24,3 +24,6 @@ This library depend on the following libraries, so make sure you install them to
 * ESP8266WebServer
 
 ### Screenshots:
+![screenshot1](https://github.com/arnab8820/ESPWiFiManager/blob/fb81d772ef5657301d675332d1309c2a1e119fdc/screenshots/IMG_20210522_210833.jpg)
+![screenshot2](https://github.com/arnab8820/ESPWiFiManager/blob/fb81d772ef5657301d675332d1309c2a1e119fdc/screenshots/IMG_20210522_210916.jpg)
+![screenshot3](https://github.com/arnab8820/ESPWiFiManager/blob/fb81d772ef5657301d675332d1309c2a1e119fdc/screenshots/IMG_20210522_210944.jpg)
