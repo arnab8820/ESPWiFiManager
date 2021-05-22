@@ -1,0 +1,345 @@
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Wi-Fi Manager</title>
+        <style>
+            .hide{
+                display: none !important;
+            }
+            .show{
+                display: inherit;
+            }
+            .Green{
+                color: green;
+            }
+            .Yellow{
+                color: orange;
+            }
+            .Red{
+                color: red;
+            }
+            body{
+                max-width: 400px;
+                margin: auto;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                padding: 0 10px;
+            }
+            .header{
+                padding: 15px 0;
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .header .title{
+                font-size: 22px;
+                font-weight: 400;
+            }
+            .header .reload{
+                cursor: pointer;
+            }
+            .header .reload:hover{
+                color: blue
+            }
+            .ap-list{
+                width: 100%;
+            }
+            .ap-list .ap{
+                border: 1px solid #cdcddc;
+                padding: 5px 10px;
+                margin: 5px 0;
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+            }
+            .ap-list .ap .ssid .name{
+                display: block;
+                font-weight: 600;
+            }
+            .ap-list .ap .ssid .status{
+                display: block;
+                font-size: 10px;
+                padding-top: 5px;
+            }
+            .ap-list .ap .signal{
+                width: fit-content;
+                text-align: right;
+            }
+            .ap-list .ap .signal span{
+                display: block;
+            }
+            .ap-list .ap .signal .status{
+                font-size: 11px;
+                padding-top: 5px;
+            }
+            
+            .connect{
+                display: block;
+                padding: 10px;
+                background-color: white;
+            }
+            .connect .header{
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+                
+            }
+            .connect .header #ssidName{
+                font-size: 20px;
+                font-weight: 600;
+            }
+            .connect .header button{
+                background-color: white;
+                font-size: 24px;
+                border: 0;
+                color: red;
+                cursor: pointer;
+            }
+            .connect .body input[type="text"], .connect .body input[type="password"]{
+                width: 100%;
+                display: block;
+                font-size: 14px;
+                padding: 5px 10px;
+                margin: 5px 0;
+            }
+            .connect .body input[type="submit"]{
+                width: 100%;
+                display: block;
+                font-size: 14px;
+                padding: 5px 10px;
+                margin: 15px 0;
+            }
+
+            .connect .body button{
+                margin: 10px 0;
+            }
+
+        </style>
+    </head>
+    <body>
+        
+        <div class="header">
+            <span class="title">Select Wi-Fi</span>
+            <span class="reload" onclick="scan()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                </svg>
+            </span>
+        </div>
+        <div class="connect hide" id="connect">
+            <!-- <div class="header">
+                <span id="ssidName">title</span>
+                <button>&times;</button>
+            </div> -->
+            <div class="body">
+                <form id="connectForm">
+                    <input type="text" name="ssid" id="ssidShadow" placeholder="SSID" disabled>
+                    <input type="text" name="ssid" id="ssid" placeholder="SSID" style="display: none;">
+                    <input type="password" name="password" id="password" placeholder="Password">
+                    <p onclick="toggle('advancedOpt')">Advanced options >></p>
+                    <div id="advancedOpt" class="hide">
+                        <input type="radio" name="ipoption" id="dhcp" value="dhcp" checked> DHCP
+                        <input type="radio" name="ipoption" id="static" value="static"> Static IP
+                        <input type="text" name="ipaddress" id="ipaddress" placeholder="IP address">
+                        <input type="text" name="subnetmask" id="subnetMask" placeholder="Subnet Mask">
+                        <input type="text" name="gateway" id="gateway" placeholder="Default Gateway">
+                        <input type="text" name="primarydns" id="primarydns" placeholder="Primary DNS">
+                        <input type="text" name="seconderydns" id="seconderydns" placeholder="Secondery DNS">
+                    </div>
+                    <input type="submit" value="Connect">
+                </form>
+                <div id="message-panel"></div>
+            </div>
+        </div>
+        <div class="ap-list" id="apList"></div>
+        <script type="text/javascript">
+            async function scan(){
+                document.getElementById("advancedOpt").classList.add("hide");
+                document.getElementById("connect").classList.add("hide");
+                document.getElementById("apList").classList.remove("hide");
+                document.getElementById("apList").innerHTML = `
+                    <div style="text-align: center; margin-top: 15px;">Scanning for Wi-Fi ...</div>
+                `;
+                var response = await fetch("/scan");
+                if(response.ok){
+                    let json = await response.json();
+                    document.getElementById("apList").innerHTML = "";
+                    json.map(data=>{
+                        signalStrength = data.signal * (-1);
+                        document.getElementById("apList").innerHTML += `
+                        <div class="ap" onclick="selectWifi('${data.ssid}')">
+                            <div class="ssid">
+                                <span class="name">${data.ssid}</span>
+                                <span class="status">${data.status}</span>
+                            </div>
+                            <div class="signal ${signalStrength<=65?"Green":signalStrength>65 && signalStrength<80?"Yellow":"Red"}">
+                                <span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-wifi" viewBox="0 0 16 16">
+                                        <path d="M15.384 6.115a.485.485 0 0 0-.047-.736A12.444 12.444 0 0 0 8 3C5.259 3 2.723 3.882.663 5.379a.485.485 0 0 0-.048.736.518.518 0 0 0 .668.05A11.448 11.448 0 0 1 8 4c2.507 0 4.827.802 6.716 2.164.205.148.49.13.668-.049z"/>
+                                        <path d="M13.229 8.271a.482.482 0 0 0-.063-.745A9.455 9.455 0 0 0 8 6c-1.905 0-3.68.56-5.166 1.526a.48.48 0 0 0-.063.745.525.525 0 0 0 .652.065A8.46 8.46 0 0 1 8 7a8.46 8.46 0 0 1 4.576 1.336c.206.132.48.108.653-.065zm-2.183 2.183c.226-.226.185-.605-.1-.75A6.473 6.473 0 0 0 8 9c-1.06 0-2.062.254-2.946.704-.285.145-.326.524-.1.75l.015.015c.16.16.407.19.611.09A5.478 5.478 0 0 1 8 10c.868 0 1.69.201 2.42.56.203.1.45.07.61-.091l.016-.015zM9.06 12.44c.196-.196.198-.52-.04-.66A1.99 1.99 0 0 0 8 11.5a1.99 1.99 0 0 0-1.02.28c-.238.14-.236.464-.04.66l.706.706a.5.5 0 0 0 .707 0l.707-.707z"/>
+                                    </svg>
+                                </span>
+                                <span class="status" style="color: black;">${signalStrength<=65?"Fair":signalStrength>65 && signalStrength<80?"Medium":"Low"} (${data.signal} dBm)</span>
+                            </div>
+                        </div>`
+                    });
+                } else {
+                    document.getElementById("apList").innerHTML = `
+                        <div class="Red">Error scanning for Wi-Fi</div>
+                    `;
+                }
+                
+            }
+            function selectWifi(wifiName){
+                document.getElementById("connectForm").reset();
+                document.getElementById("message-panel").innerHTML = ``;
+                toggle("connect");
+                toggle("apList");
+                document.getElementById("ssidShadow").value = wifiName;
+                document.getElementById("ssid").value = wifiName;
+                
+            }
+            async function connectWifi(e){
+                e.preventDefault();
+                document.getElementById("message-panel").innerHTML = ``;
+                var data = new FormData(document.getElementById("connectForm"));
+                var error = false;
+                var temp = [0, 0, 0, 0];
+                var ipaddr = temp;
+                var gateway = temp;
+                var subnetMask =temp;
+                var primaryDns = temp;
+                var seconderyDns = temp;
+                if(data.get("ipoption")!=="dhcp"){
+                    if(data.get("ipaddress").split(".").length!==4){
+                        document.getElementById("message-panel").innerHTML += `
+                            <div class="Red">Invalid IP address</div>
+                        `;
+                        error = error || true;
+                        return;
+                        
+                    } else {
+                        ipaddr = data.get("ipaddress").split(".");
+                    }
+                    if(data.get("gateway").split(".").length!==4){
+                        document.getElementById("message-panel").innerHTML += `
+                            <div class="Red">Invalid gateway address</div>
+                        `;
+                        error = error || true;
+                        return;
+                        
+                    } else {
+                        gateway = data.get("gateway").split(".");
+                    }
+                    if(data.get("subnetmask").split(".").length!==4){
+                        document.getElementById("message-panel").innerHTML += `
+                            <div class="Red">Invalid subnetmask address</div>
+                        `;
+                        error = error || true;
+                        return;
+                        
+                    } else {
+                        subnetMask = data.get("subnetmask").split(".");
+                    }
+                    if(data.get("primarydns").split(".").length!==4){
+                        document.getElementById("message-panel").innerHTML += `
+                            <div class="Red">Invalid primary dns address</div>
+                        `;
+                        error = error || true;
+                        return;
+                    } else {
+                        primaryDns = data.get("primarydns").split(".");
+                    }
+                    if(data.get("seconderydns") !== ""){
+                        if(data.get("seconderydns").split(".").length!==4){
+                            document.getElementById("message-panel").innerHTML += `
+                                <div class="Red">Invalid secondery dns address</div>
+                            `;
+                            error = error || true;
+                            return;
+                        } else {
+                            seconderyDns = data.get("seconderydns").split(".");
+                        }
+                    }
+                }
+                
+                var reqBody = {
+                    ssid: data.get("ssid"),
+                    password: data.get("password"),
+                    ipType: data.get("ipoption"),
+                    ipAddress: {
+                        0: ipaddr[0],
+                        1: ipaddr[1],
+                        2: ipaddr[2],
+                        3: ipaddr[3],
+                    },
+                    subnetMask: {
+                        0: subnetMask[0],
+                        1: subnetMask[1],
+                        2: subnetMask[2],
+                        3: subnetMask[3],
+                    },
+                    gateway: {
+                        0: gateway[0],
+                        1: gateway[1],
+                        2: gateway[2],
+                        3: gateway[3]
+                    },
+                    primaryDns: {
+                        0: primaryDns[0],
+                        1: primaryDns[1],
+                        2: primaryDns[2],
+                        3: primaryDns[3]
+                    },
+                    seconderyDns: {
+                        0: seconderyDns[0],
+                        1: seconderyDns[1],
+                        2: seconderyDns[2],
+                        3: seconderyDns[3]
+                    }
+                };
+                var response;
+                if(!error){
+                    response = await fetch("/connect", {
+                        method: 'POST',
+                        body: JSON.stringify(reqBody)
+                    });
+                }
+                
+                console.log(response);
+                if(response.ok){
+                    let data = await response.json();
+                    if(data["success"] === "true"){
+                        document.getElementById("message-panel").innerHTML += `
+                            <div class="Green">
+                                Connection successful! New device IP: ${data["ip"]}
+                                <br><br> See you on the other side! :)
+                            </div>
+                        `;
+                    } else {
+                        if(data["status"] && data["status"]==="unknown"){
+                            document.getElementById("message-panel").innerHTML += `
+                                <div class="Green">
+                                    Your device will now try to connect selected AP.
+                                    <br><br> See you on the other side! :)
+                                </div>
+                            `;
+                        } else {
+                            document.getElementById("message-panel").innerHTML += `
+                                <div class="Red">
+                                    ${data["message"]}
+                                </div>
+                            `;
+                        }
+                    }
+                }
+            }
+            scan();
+            function toggle(targetId) {
+                document.getElementById(targetId).classList.toggle("hide");
+            }
+            document.getElementById("connectForm").addEventListener('submit', connectWifi)
+        </script>
+    </body>
+</html>
